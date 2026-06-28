@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daily Quote & Mood Tracker</title>
+  <meta name="description" content="Daily Quote & Mood Tracker — calm UI, rotating quotes, mood logging, and persistent metrics." />
+  <style>
+    /* ------------------------
+       Design tokens & reset
+       ------------------------ */
+    :root{
+      --bg1: #ffd6e0;
+      --bg2: #dbe7ff;
+      --card-bg: rgba(255,255,255,0.66);
+      --glass: rgba(255,255,255,0.36);
+      --muted: #6b7280;
+      --accent: #6b5cff;
+      --happy: #FFB86B;
+      --tired: #8EC5FF;
+      --focused: #97F3C3;
+      --glass-border: rgba(255,255,255,0.5);
+      --card-radius: 20px;
+      --shadow: 0 10px 30px rgba(16,24,40,0.12);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(255,255,255,0.12), transparent),
+                  linear-gradient(135deg,var(--bg1),var(--bg2));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:48px;
+    }
+
+    /* ------------------------
+       Center card
+       ------------------------ */
+    .card {
+      width: min(920px, 96vw);
+      max-width: 720px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.58));
+      border-radius: var(--card-radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(8px) saturate(120%);
+      display: grid;
+      gap: 18px;
+    }
+
+    header.card-header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .brand {
+      height:56px;
+      width:56px;
+      border-radius:12px;
+      background: linear-gradient(135deg,var(--accent), #ff6b9f);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-weight:700;
+      font-size:20px;
+      box-shadow: 0 6px 18px rgba(107,92,255,0.16);
+      flex: 0 0 56px;
+    }
+    .brand small{display:block; font-size:11px; opacity:0.95}
+    .title {
+      font-size:18px;
+      font-weight:700;
+      line-height:1;
+    }
+    .subtitle {
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    /* ------------------------
+       Quote area
+       ------------------------ */
+    .quote-wrap {
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.84));
+      padding:18px;
+      border-radius:14px;
+      display:flex;
+      gap:14px;
+      align-items:center;
+    }
+    .quote {
+      flex:1;
+      min-height:72px;
+      position:relative;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    blockquote {
+      margin:0;
+      padding:0;
+      color:#111827;
+      font-size:16px;
+      line-height:1.35;
+      font-weight:500;
+      transition: opacity 360ms cubic-bezier(.2,.9,.2,1), transform 360ms cubic-bezier(.2,.9,.2,1);
+      transform-origin:center;
+    }
+    blockquote.fade-out {
+      opacity:0;
+      transform: translateY(6px) scale(0.998);
+    }
+    blockquote footer {
+      margin-top:8px;
+      font-size:13px;
+      color:var(--muted);
+      font-weight:600;
+      opacity:0.9;
+    }
+    .quote-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    button.btn {
+      appearance:none;
+      border:0;
+      background:linear-gradient(180deg, #fff, #f7f7ff);
+      padding:8px 12px;
+      border-radius:12px;
+      box-shadow: 0 4px 12px rgba(16,24,40,0.06);
+      cursor:pointer;
+      font-weight:700;
+      color: #20243a;
+      transition: transform 160ms cubic-bezier(.2,.9,.2,1), box-shadow 160ms;
+      will-change: transform;
+    }
+    button.btn:active{ transform: scale(.98) }
+    .btn.secondary{
+      background: transparent;
+      border:1px solid rgba(16,24,40,0.06);
+      color:var(--muted);
+      font-weight:600;
+      padding:8px 10px;
+    }
+    .btn.icon{
+      width:44px;
+      height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:10px;
+      font-size:18px;
+    }
+
+    /* ------------------------
+       Mood logger
+       ------------------------ */
+    .mood-row {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      padding:6px;
+    }
+    .mood {
+      flex: 1 1 0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.72));
+      padding:12px;
+      border-radius:12px;
+      text-align:center;
+      cursor:pointer;
+      user-select:none;
+      transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms;
+      will-change: transform;
+      box-shadow: 0 6px 18px rgba(12,18,35,0.04);
+      border: 1px solid rgba(16,24,40,0.04);
+    }
+    .mood .emoji{
+      font-size:26px;
+      line-height:1;
+    }
+    .mood .label{
+      font-weight:700;
+      font-size:13px;
+      color:#101827;
+    }
+    .mood .sub {
+      font-size:12px;
+      color:var(--muted);
+    }
+    /* Hover and active for tactile feel */
+    .mood:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(12,18,35,0.08);
+    }
+    .mood:active {
+      transform: translateY(-2px) scale(.985);
+    }
+    /* Distinct color highlights */
+    .mood[data-key="happy"] { border-left: 4px solid var(--happy) }
+    .mood[data-key="tired"] { border-left: 4px solid var(--tired) }
+    .mood[data-key="focused"] { border-left: 4px solid var(--focused) }
+
+    /* ------------------------
+       Tracking panel
+       ------------------------ */
+    .tracker {
+      padding:12px;
+      border-radius:12px;
+      background: linear-gradient(180deg, rgba(250,250,255,0.96), rgba(255,255,255,0.9));
+      border:1px solid rgba(16,24,40,0.04);
+      display:grid;
+      gap:12px;
+    }
+    .scores-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .total {
+      font-weight:800;
+      font-size:18px;
+    }
+    .meter {
+      display:flex;
+      gap:10px;
+      flex-direction:column;
+    }
+    .meter-row{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .meter-labels{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:130px;
+      color:var(--muted);
+      font-weight:700;
+      font-size:13px;
+    }
+    .bar {
+      flex:1;
+      background: linear-gradient(90deg, rgba(16,24,40,0.04), rgba(16,24,40,0.02));
+      border-radius:999px;
+      height:12px;
+      overflow:hidden;
+      position:relative;
+    }
+    .bar .fill {
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      transition: width 600ms cubic-bezier(.2,.9,.2,1);
+    }
+    .count {
+      min-width:48px;
+      text-align:right;
+      font-weight:800;
+      color:#0f1724;
+    }
+
+    /* Colors for fills */
+    .fill.happy { background: linear-gradient(90deg, #ffd7a8, var(--happy)); }
+    .fill.tired { background: linear-gradient(90deg, #bfe6ff, var(--tired)); }
+    .fill.focused { background: linear-gradient(90deg, #baf9da, var(--focused)); }
+
+    /* small controls */
+    .controls {
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .small {
+      font-size:13px;
+      color:var(--muted);
+      background:transparent;
+      border:0;
+      cursor:pointer;
+      padding:6px 8px;
+    }
+
+    footer.card-footer{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    /* ------------------------
+       Responsive & reduced motion
+       ------------------------ */
+    @media (max-width:640px){
+      .mood-row{ flex-direction:row }
+      .mood { padding:10px; font-size:14px }
+      .brand { display:flex; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition:none !important; animation:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="application" aria-label="Daily Quote and Mood Tracker">
+    <header class="card-header">
+      <div class="brand" aria-hidden="true">DQ</div>
+      <div>
+        <div class="title">Daily Quote & Mood Tracker</div>
+        <div class="subtitle">Capture how you feel — a little mindfulness, everyday.</div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-size:12px;color:var(--muted)">Local Persistence</div>
+        <div style="font-weight:700;color:var(--muted);font-size:12px">Saved to browser</div>
+      </div>
+    </header>
+
+    <!-- Quote Area -->
+    <section class="quote-wrap" aria-labelledby="quote-heading">
+      <div class="quote" aria-live="polite">
+        <blockquote id="quoteBlock">
+          <p id="quoteText">Loading quotes…</p>
+          <footer id="quoteAuthor"></footer>
+        </blockquote>
+      </div>
+      <div class="quote-actions" role="group" aria-label="Quote controls">
+        <button id="newQuoteBtn" class="btn icon" title="New quote" aria-label="Next quote">⟳</button>
+        <button id="nextQuoteBtn" class="btn secondary" title="Next quote" aria-label="Next quote (text)">New Quote</button>
+      </div>
+    </section>
+
+    <!-- Mood logger -->
+    <section aria-labelledby="mood-heading">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:800">How are you feeling right now?</div>
+        <div style="color:var(--muted);font-size:13px">Tap an emoji to log</div>
+      </div>
+      <div class="mood-row" role="list" aria-label="Mood options">
+        <div class="mood" data-key="happy" role="button" tabindex="0" aria-pressed="false" aria-label="Log Happy mood">
+          <div class="emoji" aria-hidden="true">😊</div>
+          <div class="label">Happy</div>
+          <div class="sub">Light & uplifted</div>
+        </div>
+
+        <div class="mood" data-key="tired" role="button" tabindex="0" aria-pressed="false" aria-label="Log Tired mood">
+          <div class="emoji" aria-hidden="true">😴</div>
+          <div class="label">Tired</div>
+          <div class="sub">Low energy</div>
+        </div>
+
+        <div class="mood" data-key="focused" role="button" tabindex="0" aria-pressed="false" aria-label="Log Focused mood">
+          <div class="emoji" aria-hidden="true">🧠</div>
+          <div class="label">Focused</div>
+          <div class="sub">Clear & productive</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tracker -->
+    <section class="tracker" aria-labelledby="tracker-heading">
+      <div class="scores-row">
+        <div>
+          <div style="font-size:13px;color:var(--muted)">Total entries</div>
+          <div class="total" id="totalCount">0</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;color:var(--muted)">Last logged</div>
+          <div id="lastLogged" style="font-weight:700">—</div>
+        </div>
+      </div>
+
+      <div class="meter" role="list" aria-label="Mood distribution">
+        <div class="meter-row" role="listitem" aria-label="Happy">
+          <div class="meter-labels"><div style="width:10px;height:10px;border-radius:999px;background:var(--happy)"></div><div>Happy</div></div>
+          <div class="bar" aria-hidden="true"><div class="fill happy" id="fill-happy"></div></div>
+          <div class="count" id="count-happy">0</div>
+        </div>
+
+        <div class="meter-row" role="listitem" aria-label="Tired">
+          <div class="meter-labels"><div style="width:10px;height:10px;border-radius:999px;background:var(--tired)"></div><div>Tired</div></div>
+          <div class="bar" aria-hidden="true"><div class="fill tired" id="fill-tired"></div></div>
+          <div class="count" id="count-tired">0</div>
+        </div>
+
+        <div class="meter-row" role="listitem" aria-label="Focused">
+          <div class="meter-labels"><div style="width:10px;height:10px;border-radius:999px;background:var(--focused)"></div><div>Focused</div></div>
+          <div class="bar" aria-hidden="true"><div class="fill focused" id="fill-focused"></div></div>
+          <div class="count" id="count-focused">0</div>
+        </div>
+      </div>
+
+      <div class="controls" style="margin-top:8px">
+        <button id="exportBtn" class="small" title="Export data as JSON">Export JSON</button>
+        <button id="resetBtn" class="small" title="Reset stored data">Reset Data</button>
+      </div>
+    </section>
+
+    <footer class="card-footer">
+      <div>Made for calm daily journaling • Local only</div>
+      <div style="font-size:12px;color:var(--muted)">Tip: use regularly to see trends</div>
+    </footer>
+  </main>
+
+  <script>
+    (function(){
+      // ----------------------------
+      // Data & persistence
+      // ----------------------------
+      const STORAGE_KEY = 'dqmt:v1';
+      const defaultState = {
+        counts: { happy: 0, tired: 0, focused: 0 },
+        logs: [], // {mood, ts}
+        quoteIndex: 0
+      };
+
+      // Restore state from localStorage
+      let state = (() => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return {...defaultState};
+          const parsed = JSON.parse(raw);
+          // simple validation & fallback
+          if (!parsed.counts) parsed.counts = {...defaultState.counts};
+          if (!Array.isArray(parsed.logs)) parsed.logs = [];
+          if (typeof parsed.quoteIndex !== 'number') parsed.quoteIndex = 0;
+          return parsed;
+        } catch (e) {
+          console.warn('DQMT: error reading storage', e);
+          return {...defaultState};
+        }
+      })();
+
+      function persist() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          console.warn('DQMT: unable to persist', e);
+        }
+      }
+
+      // ----------------------------
+      // Quotes
+      // ----------------------------
+      const quotes = [
+        { text: "Do not hurry. Do not rest.", author: "Devon" },
+        { text: "Small things done consistently outrank big things done occasionally.", author: "Unknown" },
+        { text: "You do not find the happy life — you make it.", author: "Camilla Eyring Kimball" },
+        { text: "Stillness is where creativity and solutions are found.", author: "Eckhart Tolle" },
+        { text: "The way you do anything is the way you do everything.", author: "Martha Beck" },
+        { text: "Begin anywhere.", author: "John Cage" },
+        { text: "Progress, not perfection.", author: "Unknown" },
+        { text: "Plant the seed of now — watch later grow.", author: "Unknown" }
+      ];
+
+      // DOM refs
+      const quoteText = document.getElementById('quoteText');
+      const quoteAuthor = document.getElementById('quoteAuthor');
+      const quoteBlock = document.getElementById('quoteBlock');
+      const newQuoteBtn = document.getElementById('newQuoteBtn');
+      const nextQuoteBtn = document.getElementById('nextQuoteBtn');
+
+      const moodEls = Array.from(document.querySelectorAll('.mood'));
+      const countHappyEl = document.getElementById('count-happy');
+      const countTiredEl = document.getElementById('count-tired');
+      const countFocusedEl = document.getElementById('count-focused');
+      const fillHappy = document.getElementById('fill-happy');
+      const fillTired = document.getElementById('fill-tired');
+      const fillFocused = document.getElementById('fill-focused');
+      const totalCountEl = document.getElementById('totalCount');
+      const lastLoggedEl = document.getElementById('lastLogged');
+
+      // Quote display with fade transition
+      let quoteTimer = null;
+      const AUTO_ADVANCE_MS = 11000;
+
+      function showQuote(index, {instant=false} = {}) {
+        index = ((index % quotes.length) + quotes.length) % quotes.length;
+        state.quoteIndex = index;
+        persist();
+
+        // fade out -> change -> fade in
+        if (instant) {
+          quoteText.textContent = quotes[index].text;
+          quoteAuthor.textContent = quotes[index].author ? '— ' + quotes[index].author : '';
+          return;
+        }
+
+        quoteBlock.classList.add('fade-out');
+        setTimeout(() => {
+          quoteText.textContent = quotes[index].text;
+          quoteAuthor.textContent = quotes[index].author ? '— ' + quotes[index].author : '';
+          // reveal
+          requestAnimationFrame(() => {
+            quoteBlock.classList.remove('fade-out');
+          });
+        }, 260);
+      }
+
+      function nextQuote() {
+        showQuote(state.quoteIndex + 1);
+        resetAutoAdvance();
+      }
+
+      function resetAutoAdvance() {
+        if (quoteTimer) clearInterval(quoteTimer);
+        quoteTimer = setInterval(() => {
+          showQuote(state.quoteIndex + 1);
+        }, AUTO_ADVANCE_MS);
+      }
+
+      // ----------------------------
+      // Mood logging
+      // ----------------------------
+      function getTotal() {
+        const c = state.counts;
+        return (c.happy||0) + (c.tired||0) + (c.focused||0);
+      }
+
+      function formatTimestamp(ts) {
+        const dt = new Date(ts);
+        return dt.toLocaleString();
+      }
+
+      function updateUI(animated = true) {
+        const c = state.counts;
+        const total = getTotal();
+
+        countHappyEl.textContent = c.happy;
+        countTiredEl.textContent = c.tired;
+        countFocusedEl.textContent = c.focused;
+        totalCountEl.textContent = total;
+
+        const last = state.logs.length ? state.logs[state.logs.length - 1] : null;
+        lastLoggedEl.textContent = last ? formatTimestamp(last.ts) : '—';
+
+        // percentages
+        const safe = (n) => total ? Math.round((n/total) * 100) : 0;
+        const ph = safe(c.happy), pt = safe(c.tired), pf = safe(c.focused);
+
+        // update fill widths
+        if (!animated || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          fillHappy.style.transition = 'none';
+          fillTired.style.transition = 'none';
+          fillFocused.style.transition = 'none';
+          fillHappy.style.width = ph + '%';
+          fillTired.style.width = pt + '%';
+          fillFocused.style.width = pf + '%';
+          // force reflow then re-enable transition
+          void fillHappy.offsetHeight;
+          fillHappy.style.transition = '';
+          fillTired.style.transition = '';
+          fillFocused.style.transition = '';
+        } else {
+          fillHappy.style.width = ph + '%';
+          fillTired.style.width = pt + '%';
+          fillFocused.style.width = pf + '%';
+        }
+      }
+
+      function logMood(moodKey) {
+        if (!['happy','tired','focused'].includes(moodKey)) return;
+        state.counts[moodKey] = (state.counts[moodKey]||0) + 1;
+        state.logs.push({ mood: moodKey, ts: Date.now() });
+        persist();
+        updateUI();
+        animateClickedMood(moodKey);
+      }
+
+      function animateClickedMood(key) {
+        const el = document.querySelector('.mood[data-key="' + key + '"]');
+        if (!el) return;
+        el.animate([
+          { transform: 'translateY(-2px) scale(0.995)' },
+          { transform: 'translateY(-8px) scale(1.004)' },
+          { transform: 'translateY(-4px) scale(1.0)' }
+        ], { duration: 420, easing: 'cubic-bezier(.2,.9,.2,1)'});
+      }
+
+      // ----------------------------
+      // Wiring & events
+      // ----------------------------
+      // populate initial quote
+      showQuote(state.quoteIndex, {instant:true});
+      resetAutoAdvance();
+
+      newQuoteBtn.addEventListener('click', nextQuote);
+      nextQuoteBtn.addEventListener('click', nextQuote);
+
+      // mood events (click & keyboard)
+      moodEls.forEach(el => {
+        const key = el.dataset.key;
+        el.addEventListener('click', () => logMood(key));
+        el.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            logMood(key);
+          }
+        });
+      });
+
+      // export JSON
+      const exportBtn = document.getElementById('exportBtn');
+      exportBtn.addEventListener('click', () => {
+        const dataStr = JSON.stringify(state, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dqmt-export-' + new Date().toISOString().slice(0,19) + '.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      // reset data
+      const resetBtn = document.getElementById('resetBtn');
+      resetBtn.addEventListener('click', () => {
+        if (!confirm('Reset all saved Mood Tracker data? This will clear counts and history.')) return;
+        state = {...defaultState};
+        persist();
+        updateUI(false);
+        showQuote(state.quoteIndex, {instant:true});
+      });
+
+      // initialize UI values
+      updateUI(false);
+
+      // Accessibility note: pause auto-advance while user interacts with the card
+      document.querySelector('.card').addEventListener('mouseenter', () => {
+        if (quoteTimer) clearInterval(quoteTimer);
+        quoteTimer = null;
+      });
+      document.querySelector('.card').addEventListener('mouseleave', () => {
+        resetAutoAdvance();
+      });
+
+      // Keep quote timer running in background but reset whenever user clicks next
+      // (handled by nextQuote)
+
+      // expose small debugging helpers on window for dev use (not necessary)
+      window.DQMT = {
+        getState: () => JSON.parse(JSON.stringify(state)),
+        clearAll: () => { localStorage.removeItem(STORAGE_KEY); state = {...defaultState}; updateUI(false); showQuote(0,{instant:true}); }
+      };
+    })();
+  </script>
+</body>
+</html>
